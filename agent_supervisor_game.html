@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Supervisor - The Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            color: #eee;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #00d4ff;
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0,212,255,0.5);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0,212,255,0.1);
+            border-radius: 10px;
+            border: 1px solid #00d4ff;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #00d4ff;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .timer {
+            color: #ff6b6b;
+        }
+
+        .timer.warning {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .code-window {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #30363d;
+            min-height: 150px;
+        }
+
+        .code-line {
+            color: #c9d1d9;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .agent-proposal {
+            background: rgba(255,193,7,0.1);
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .proposal-title {
+            color: #ffc107;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .proposal-description {
+            color: #ccc;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .code-change {
+            background: #0d1117;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.85em;
+        }
+
+        .removed {
+            color: #ff6b6b;
+            text-decoration: line-through;
+        }
+
+        .added {
+            color: #51cf66;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+        }
+
+        .approve-btn {
+            background: #51cf66;
+            color: #000;
+        }
+
+        .approve-btn:hover {
+            background: #40c057;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(81,207,102,0.4);
+        }
+
+        .reject-btn {
+            background: #ff6b6b;
+            color: #fff;
+        }
+
+        .reject-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,107,107,0.4);
+        }
+
+        .game-over, .game-win {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .game-over h2 {
+            color: #ff6b6b;
+            font-size: 3em;
+            margin-bottom: 20px;
+            animation: shake 0.5s;
+        }
+
+        .game-win h2 {
+            color: #51cf66;
+            font-size: 3em;
+            margin-bottom: 20px;
+            animation: bounce 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .restart-btn {
+            background: #00d4ff;
+            color: #000;
+            margin-top: 20px;
+        }
+
+        .restart-btn:hover {
+            background: #00b8e6;
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            background: rgba(0,212,255,0.2);
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #00d4ff, #51cf66);
+            height: 100%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0,212,255,0.5);
+        }
+
+        .start-screen {
+            text-align: center;
+        }
+
+        .start-screen h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .start-screen p {
+            color: #ccc;
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .start-btn {
+            background: #51cf66;
+            color: #000;
+            margin-top: 30px;
+            font-size: 1.3em;
+            padding: 15px 50px;
+        }
+
+        .start-btn:hover {
+            background: #40c057;
+            transform: scale(1.05);
+        }
+
+        .danger {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .safe {
+            color: #51cf66;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🤖 AI Agent Supervisor</h1>
+            <p style="color: #888;">Approve safe changes, reject dangerous ones!</p>
+        </div>
+
+        <div id="startScreen" class="start-screen">
+            <h2>Welcome, Developer!</h2>
+            <p>You've been assigned an AI coding agent to help with your project.</p>
+            <p>The agent will propose code changes. You must:</p>
+            <p class="safe">✓ APPROVE safe, helpful changes</p>
+            <p class="danger">✗ REJECT dangerous operations</p>
+            <p style="margin-top: 20px;">⚠️ <strong>Warning:</strong> Approving dangerous changes like deleting data, removing security, or breaking critical systems will result in <span class="danger">GAME OVER</span>!</p>
+            <p>⏱️ You have <strong>60 seconds</strong> to complete all 10 changes correctly.</p>
+            <button class="start-btn" onclick="startGame()">Start Mission</button>
+        </div>
+
+        <div id="gameScreen" class="hidden">
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Time Remaining</div>
+                    <div class="stat-value timer" id="timer">60</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Progress</div>
+                    <div class="stat-value" id="progress">0/10</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Score</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+            </div>
+
+            <div class="code-window" id="codeWindow">
+                <div class="code-line">// Your project code</div>
+                <div class="code-line">const app = express();</div>
+                <div class="code-line">const database = new Database();</div>
+                <div class="code-line">// Agent is analyzing...</div>
+            </div>
+
+            <div id="proposalContainer"></div>
+        </div>
+
+        <div id="gameOverScreen" class="hidden game-over">
+            <h2>💥 GAME OVER!</h2>
+            <p id="gameOverMessage" style="font-size: 1.2em; color: #ccc; margin-bottom: 20px;"></p>
+            <p style="color: #888;">Final Score: <span id="finalScore" style="color: #00d4ff;">0</span></p>
+            <button class="restart-btn" onclick="location.reload()">Try Again</button>
+        </div>
+
+        <div id="gameWinScreen" class="hidden game-win">
+            <h2>🎉 MISSION COMPLETE!</h2>
+            <p style="font-size: 1.2em; color: #ccc; margin-bottom: 20px;">You successfully supervised the AI agent!</p>
+            <p style="color: #888;">Final Score: <span id="winScore" style="color: #51cf66;">0</span></p>
+            <p style="color: #888;">Time: <span id="winTime" style="color: #00d4ff;">0</span> seconds</p>
+            <button class="restart-btn" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const proposals = [
+            {
+                title: "🔧 Optimize Database Query",
+                description: "Add index to improve query performance on user lookup",
+                code: '<div class="removed">- SELECT * FROM users WHERE email = ?</div><div class="added">+ SELECT * FROM users USE INDEX(email_idx) WHERE email = ?</div>',
+                safe: true
+            },
+            {
+                title: "🗑️ Clean Up Old Data",
+                description: "Remove all user records older than 30 days to save space",
+                code: '<div class="removed">- // Keep all user data</div><div class="added">+ DELETE FROM users WHERE created_at < NOW() - INTERVAL 30 DAY;</div>',
+                safe: false,
+                reason: "Deleting user data without backup or business approval!"
+            },
+            {
+                title: "🔒 Add Input Validation",
+                description: "Sanitize user input to prevent XSS attacks",
+                code: '<div class="removed">- res.send(userInput)</div><div class="added">+ res.send(sanitize(userInput))</div>',
+                safe: true
+            },
+            {
+                title: "🚀 Remove Rate Limiting",
+                description: "Delete rate limiter to improve API response speed",
+                code: '<div class="removed">- app.use(rateLimiter())</div><div class="added">+ // Removed for better performance</div>',
+                safe: false,
+                reason: "Removing rate limiting exposes your API to abuse and DDoS attacks!"
+            },
+            {
+                title: "📝 Add Logging",
+                description: "Log all authentication attempts for security monitoring",
+                code: '<div class="added">+ logger.info(`Login attempt: ${username}`);</div>',
+                safe: true
+            },
+            {
+                title: "🔓 Disable Authentication",
+                description: "Skip auth checks for faster development testing",
+                code: '<div class="removed">- if (!isAuthenticated(req)) return res.status(401).send();</div><div class="added">+ // Auth disabled for testing</div>',
+                safe: false,
+                reason: "Disabling authentication is a critical security vulnerability!"
+            },
+            {
+                title: "⚡ Update Dependencies",
+                description: "Upgrade Express.js to latest version for security patches",
+                code: '<div class="removed">- "express": "^4.17.1"</div><div class="added">+ "express": "^4.18.2"</div>',
+                safe: true
+            },
+            {
+                title: "🔥 Drop Production Database",
+                description: "Reset database schema for clean slate",
+                code: '<div class="added">+ DROP DATABASE production;</div><div class="added">+ CREATE DATABASE production;</div>',
+                safe: false,
+                reason: "You just approved dropping the production database! All data lost!"
+            },
+            {
+                title: "🛡️ Add HTTPS Redirect",
+                description: "Force all HTTP traffic to use HTTPS",
+                code: '<div class="added">+ app.use((req, res, next) => {</div><div class="added">+   if (!req.secure) return res.redirect(`https://${req.headers.host}${req.url}`);</div><div class="added">+   next();</div><div class="added">+ });</div>',
+                safe: true
+            },
+            {
+                title: "💾 Add Backup System",
+                description: "Implement automated daily database backups",
+                code: '<div class="added">+ cron.schedule("0 2 * * *", () => {</div><div class="added">+   backupDatabase();</div><div class="added">+ });</div>',
+                safe: true
+            },
+            {
+                title: "🔑 Hardcode API Keys",
+                description: "Add API keys directly to code for convenience",
+                code: '<div class="removed">- const apiKey = process.env.API_KEY;</div><div class="added">+ const apiKey = "sk_live_1234567890abcdef";</div>',
+                safe: false,
+                reason: "Hardcoding API keys in source code is a major security risk!"
+            },
+            {
+                title: "📊 Add Error Tracking",
+                description: "Integrate error monitoring service",
+                code: '<div class="added">+ Sentry.init({ dsn: process.env.SENTRY_DSN });</div>',
+                safe: true
+            },
+            {
+                title: "🗄️ Remove All Backups",
+                description: "Delete backup files to free up disk space",
+                code: '<div class="added">+ exec("rm -rf /backups/*");</div>',
+                safe: false,
+                reason: "Deleting all backups leaves you with no disaster recovery option!"
+            },
+            {
+                title: "✅ Add Unit Tests",
+                description: "Create tests for user authentication module",
+                code: '<div class="added">+ test("should authenticate valid user", async () => {</div><div class="added">+   expect(await auth.login(validUser)).toBe(true);</div><div class="added">+ });</div>',
+                safe: true
+            }
+        ];
+
+        let currentProposalIndex = 0;
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let totalChanges = 10;
+        let completedChanges = 0;
+        let usedProposals = [];
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            // Shuffle and select proposals
+            const shuffled = [...proposals].sort(() => Math.random() - 0.5);
+            usedProposals = shuffled.slice(0, totalChanges);
+            
+            startTimer();
+            showNextProposal();
+        }
+
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                if (timeLeft <= 10) {
+                    timerElement.classList.add('warning');
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    gameOver("Time's up! You didn't complete all changes in time.");
+                }
+            }, 1000);
+        }
+
+        function showNextProposal() {
+            if (completedChanges >= totalChanges) {
+                gameWin();
+                return;
+            }
+
+            const proposal = usedProposals[completedChanges];
+            const container = document.getElementById('proposalContainer');
+            
+            container.innerHTML = `
+                <div class="agent-proposal">
+                    <div class="proposal-title">Agent Proposal #${completedChanges + 1}</div>
+                    <div class="proposal-title">${proposal.title}</div>
+                    <div class="proposal-description">${proposal.description}</div>
+                    <div class="code-change">${proposal.code}</div>
+                    <div class="buttons">
+                        <button class="approve-btn" onclick="handleDecision(true)">✓ Approve</button>
+                        <button class="reject-btn" onclick="handleDecision(false)">✗ Reject</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleDecision(approved) {
+            const proposal = usedProposals[completedChanges];
+            
+            if (approved === proposal.safe) {
+                // Correct decision
+                score += 100;
+                completedChanges++;
+                updateUI();
+                
+                if (completedChanges < totalChanges) {
+                    setTimeout(showNextProposal, 500);
+                } else {
+                    gameWin();
+                }
+            } else {
+                // Wrong decision
+                if (approved && !proposal.safe) {
+                    // Approved a dangerous change - game over
+                    clearInterval(timerInterval);
+                    gameOver(proposal.reason);
+                } else {
+                    // Rejected a safe change - penalty but continue
+                    score = Math.max(0, score - 50);
+                    completedChanges++;
+                    updateUI();
+                    
+                    if (completedChanges < totalChanges) {
+                        setTimeout(showNextProposal, 500);
+                    } else {
+                        gameWin();
+                    }
+                }
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('progress').textContent = `${completedChanges}/${totalChanges}`;
+            const progressPercent = (completedChanges / totalChanges) * 100;
+            document.getElementById('progressBar').style.width = progressPercent + '%';
+        }
+
+        function gameOver(message) {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            document.getElementById('gameOverMessage').textContent = message;
+            document.getElementById('finalScore').textContent = score;
+        }
+
+        function gameWin() {
+            clearInterval(timerInterval);
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('gameWinScreen').classList.remove('hidden');
+            document.getElementById('winScore').textContent = score;
+            document.getElementById('winTime').textContent = 60 - timeLeft;
+        }
+    </script>
+</body>
+</html>
